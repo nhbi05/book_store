@@ -1,0 +1,66 @@
+// Database types based on your Supabase schema
+
+export interface Author {
+  author_id: number
+  name: string
+}
+
+export interface Category {
+  category_id: number
+  name: string
+  description?: string
+}
+
+export interface Book {
+  book_id: number
+  bk_title: string
+  author_id?: number
+  category_id?: number
+  isbn?: string
+  stock_quantity: number
+  price: number
+  created_at: string
+}
+
+// Extended types with relations
+export interface BookWithRelations extends Book {
+  authors?: Author
+  categories?: Category
+}
+
+// Input types for creating/updating records
+export interface CreateAuthor {
+  name: string
+}
+
+export interface UpdateAuthor {
+  name?: string
+}
+
+export interface CreateCategory {
+  name: string
+  description?: string
+}
+
+export interface UpdateCategory {
+  name?: string
+  description?: string
+}
+
+export interface CreateBook {
+  bk_title: string
+  author_id?: number
+  category_id?: number
+  isbn?: string
+  stock_quantity?: number
+  price: number
+}
+
+export interface UpdateBook {
+  bk_title?: string
+  author_id?: number
+  category_id?: number
+  isbn?: string
+  stock_quantity?: number
+  price?: number
+}

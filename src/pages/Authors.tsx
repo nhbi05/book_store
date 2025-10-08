@@ -36,7 +36,7 @@ export default function Authors() {
       const authorsWithCounts = await Promise.all(
         authorsData.map(async (author) => {
           try {
-            const books = await booksAPI.getByAuthor(author.author_id)
+            const books = await booksAPI.searchBooks({ authorId: author.author_id })
             return { ...author, bookCount: books.length }
           } catch (error) {
             console.error(`Error getting books for author ${author.author_id}:`, error)
@@ -288,7 +288,7 @@ export default function Authors() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full">
             <div className="p-6">
               <h2 className="text-xl font-bold mb-4">

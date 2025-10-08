@@ -39,13 +39,19 @@ export const authorsAPI = {
 
   // Create new author
   async create(author: CreateAuthor): Promise<Author> {
+    // Omit author_id if present
+    const { author_id, ...authorDataWithoutId } = author as any
     const { data, error } = await supabase
       .from(TABLES.AUTHORS)
-      .insert([author])
+      .insert([authorDataWithoutId])
       .select()
       .single()
-    
-    if (error) throw error
+    if (error) {
+      if (error.code === '23505' && error.message?.includes('authors_pkey')) {
+        throw new Error('Database sequence error for author_id. Please reset the authors_author_id_seq.')
+      }
+      throw error
+    }
     return data
   },
 
@@ -100,13 +106,19 @@ export const categoriesAPI = {
 
   // Create new category
   async create(category: CreateCategory): Promise<Category> {
+    // Omit category_id if present
+    const { category_id, ...categoryDataWithoutId } = category as any
     const { data, error } = await supabase
       .from(TABLES.CATEGORIES)
-      .insert([category])
+      .insert([categoryDataWithoutId])
       .select()
       .single()
-    
-    if (error) throw error
+    if (error) {
+      if (error.code === '23505' && error.message?.includes('categories_pkey')) {
+        throw new Error('Database sequence error for category_id. Please reset the categories_category_id_seq.')
+      }
+      throw error
+    }
     return data
   },
 
@@ -167,58 +179,38 @@ export const booksAPI = {
     return data
   },
 
-  // Search books by title
-  async searchByTitle(title: string): Promise<BookWithRelations[]> {
-    const { data, error } = await supabase
+  // Server-side search and filter for books
+  async searchBooks({
+    title = '',
+    categoryId = '',
+    authorId = ''
+  }: { title?: string; categoryId?: string | number; authorId?: string | number }) : Promise<BookWithRelations[]> {
+    let query = supabase
       .from(TABLES.BOOKS)
-      .select(`
-        *,
-        authors(author_id, name),
-        categories(category_id, name)
-      `)
-      .ilike('bk_title', `%${title}%`)
-      .order('bk_title')
-    
-    if (error) throw error
-    return data || []
-  },
+      .select(`*, authors(author_id, name), categories(category_id, name)`) // relations
+      .order('created_at', { ascending: false })
 
-  // Get books by category
-  async getByCategory(categoryId: number): Promise<BookWithRelations[]> {
-    const { data, error } = await supabase
-      .from(TABLES.BOOKS)
-      .select(`
-        *,
-        authors(author_id, name),
-        categories(category_id, name)
-      `)
-      .eq('category_id', categoryId)
-      .order('bk_title')
-    
-    if (error) throw error
-    return data || []
-  },
+    if (title) {
+      query = query.ilike('bk_title', `%${title}%`)
+    }
+    if (categoryId && categoryId !== '') {
+      query = query.eq('category_id', categoryId)
+    }
+    if (authorId && authorId !== '') {
+      query = query.eq('author_id', authorId)
+    }
 
-  // Get books by author
-  async getByAuthor(authorId: number): Promise<BookWithRelations[]> {
-    const { data, error } = await supabase
-      .from(TABLES.BOOKS)
-      .select(`
-        *,
-        authors(author_id, name),
-        categories(category_id, name)
-      `)
-      .eq('author_id', authorId)
-      .order('bk_title')
-    
+    const { data, error } = await query
     if (error) throw error
     return data || []
   },
 
   // Create new book
   async create(book: CreateBook): Promise<BookWithRelations> {
+    // Ensure we don't pass book_id - let PostgreSQL auto-generate it
+    const { book_id, ...bookDataWithoutId } = book as any
     const bookData = {
-      ...book,
+      ...bookDataWithoutId,
       created_at: new Date().toISOString()
     }
     
@@ -232,7 +224,14 @@ export const booksAPI = {
       `)
       .single()
     
-    if (error) throw error
+    if (error) {
+      // If it's still a sequence issue, try to fix it
+      if (error.code === '23505' && error.message?.includes('book_pkey')) {
+        console.error('Database sequence is out of sync. This needs to be fixed in the database.')
+        throw new Error('Database sequence error. Please contact the administrator to reset the book_id sequence.')
+      }
+      throw error
+    }
     return data
   },
 

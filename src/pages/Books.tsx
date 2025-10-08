@@ -121,26 +121,77 @@ export default function Books() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Basic validation
+    if (!formData.bk_title.trim()) {
+      alert('Please enter a book title')
+      return
+    }
+    if (formData.price <= 0) {
+      alert('Please enter a valid price')
+      return
+    }
+
+    // Check for duplicate ISBN (only if ISBN is provided)
+    if (formData.isbn?.trim()) {
+      const existingBook = books.find(book => 
+        book.isbn === formData.isbn.trim() && 
+        (!editingBook || book.book_id !== editingBook.book_id)
+      )
+      if (existingBook) {
+        alert(`A book with ISBN "${formData.isbn}" already exists: "${existingBook.bk_title}"`)
+        return
+      }
+    }
+
     try {
       const bookData: CreateBook | UpdateBook = {
-        bk_title: formData.bk_title,
+        bk_title: formData.bk_title.trim(),
         author_id: formData.author_id === '' ? undefined : Number(formData.author_id),
         category_id: formData.category_id === '' ? undefined : Number(formData.category_id),
-        isbn: formData.isbn || undefined,
-        stock_quantity: formData.stock_quantity,
+        isbn: formData.isbn?.trim() || undefined,
+        stock_quantity: formData.stock_quantity || 0,
         price: formData.price
       }
 
+      console.log('Submitting book data:', JSON.stringify(bookData, null, 2))
+
       if (editingBook) {
         await booksAPI.update(editingBook.book_id, bookData)
+        console.log('Book updated successfully')
       } else {
         await booksAPI.create(bookData as CreateBook)
+        console.log('Book created successfully')
       }
 
       await loadData()
       closeModal()
-    } catch (error) {
-      console.error('Error saving book:', error)
+    } catch (error: any) {
+      console.error('Full error details:', {
+        error,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code
+      })
+      
+      // Handle specific error cases
+      let errorMessage = 'Failed to save book.'
+      
+      if (error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
+        // Unique constraint violation
+        if (error.message?.includes('isbn') || error.details?.includes('isbn')) {
+          errorMessage = 'A book with this ISBN already exists. Please use a different ISBN or leave it empty.'
+        } else if (error.message?.includes('bk_title') || error.details?.includes('bk_title')) {
+          errorMessage = 'A book with this title already exists.'
+        } else {
+          errorMessage = 'This book conflicts with an existing record. Please check your inputs.'
+        }
+      } else if (error?.message) {
+        errorMessage = `Error: ${error.message}`
+      }
+      
+      alert(errorMessage)
     }
   }
 
@@ -365,7 +416,7 @@ export default function Books() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-xl font-bold mb-4">
@@ -425,11 +476,13 @@ export default function Books() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     ISBN
+                    <span className="text-xs text-gray-500 ml-1">(optional, must be unique)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.isbn}
                     onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                    placeholder="e.g., 978-0-123456-78-9"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

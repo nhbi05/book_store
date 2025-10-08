@@ -19,13 +19,12 @@ export const authorsAPI = {
     const { data, error } = await supabase
       .from(TABLES.AUTHORS)
       .select('*')
-      .order('name')
+      .order('author_id', { ascending: false })
     
     if (error) throw error
-    return data || []
+    return data
   },
 
-  // Get author by ID
   async getById(id: number): Promise<Author> {
     const { data, error } = await supabase
       .from(TABLES.AUTHORS)
@@ -86,7 +85,7 @@ export const categoriesAPI = {
     const { data, error } = await supabase
       .from(TABLES.CATEGORIES)
       .select('*')
-      .order('name')
+      .order('category_id', { ascending: false })
     
     if (error) throw error
     return data || []
@@ -157,7 +156,7 @@ export const booksAPI = {
         authors(author_id, name),
         categories(category_id, name)
       `)
-      .order('created_at', { ascending: false })
+      .order('book_id', { ascending: false })
     
     if (error) throw error
     return data || []
@@ -188,7 +187,7 @@ export const booksAPI = {
     let query = supabase
       .from(TABLES.BOOKS)
       .select(`*, authors(author_id, name), categories(category_id, name)`) // relations
-      .order('created_at', { ascending: false })
+      .order('book_id', { ascending: false })
 
     if (title) {
       query = query.ilike('bk_title', `%${title}%`)

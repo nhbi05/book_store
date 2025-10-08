@@ -1,4 +1,16 @@
 import React, { useState, useEffect } from 'react'
+import { Toaster } from '../components/ui/sonner'
+import { toast } from 'sonner'
+import {
+  AlertDialog,
+    AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel
+} from '../components/ui/alert-dialog'
 import { 
   Plus, 
   Search, 
@@ -6,9 +18,7 @@ import {
   Trash2, 
   BookOpen, 
   Filter,
-  MoreVertical,
-  Eye
-} from 'lucide-react'
+    } from 'lucide-react'
 import { booksAPI, authorsAPI, categoriesAPI } from '../lib/api'
 import type { BookWithRelations, Author, Category, CreateBook, UpdateBook } from '../types/database'
 
@@ -22,6 +32,27 @@ interface BookFormData {
 }
 
 export default function Books() {
+  const handleDelete = async () => {
+    if (bookToDelete == null) return;
+    try {
+      await booksAPI.delete(bookToDelete);
+      toast.success('Book deleted successfully');
+      await loadData();
+    } catch (error) {
+      toast.error('Failed to delete book');
+      console.error(error);
+    } finally {
+      setDeleteDialogOpen(false);
+      setBookToDelete(null);
+    }
+  };
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState<number | null>(null);
+
+  const confirmDeleteBook = (id: number) => {
+    setBookToDelete(id);
+    setDeleteDialogOpen(true);
+  }
   const [books, setBooks] = useState<BookWithRelations[]>([])
   const [authors, setAuthors] = useState<Author[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -118,17 +149,16 @@ export default function Books() {
       price: 0
     })
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     // Basic validation
     if (!formData.bk_title.trim()) {
-      alert('Please enter a book title')
+      toast.error('Please enter a book title')
       return
     }
     if (formData.price <= 0) {
-      alert('Please enter a valid price')
+      toast.error('Please enter a valid price')
       return
     }
 
@@ -139,7 +169,7 @@ export default function Books() {
         (!editingBook || book.book_id !== editingBook.book_id)
       )
       if (existingBook) {
-        alert(`A book with ISBN "${formData.isbn}" already exists: "${existingBook.bk_title}"`)
+        toast.error(`A book with ISBN "${formData.isbn}" already exists: "${existingBook.bk_title}"`)
         return
       }
     }
@@ -189,19 +219,6 @@ export default function Books() {
         }
       } else if (error?.message) {
         errorMessage = `Error: ${error.message}`
-      }
-      
-      alert(errorMessage)
-    }
-  }
-
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this book?')) {
-      try {
-        await booksAPI.delete(id)
-        await loadData()
-      } catch (error) {
-        console.error('Error deleting book:', error)
       }
     }
   }
@@ -340,7 +357,7 @@ export default function Books() {
                         <Edit size={14} />
                       </button>
                       <button
-                        onClick={() => handleDelete(book.book_id)}
+                        onClick={() => confirmDeleteBook(book.book_id)}
                         className="text-gray-400 hover:text-red-600 p-1"
                         title="Delete"
                       >
@@ -536,6 +553,25 @@ export default function Books() {
           </div>
         </div>
       )}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Book</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this book? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete()}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Toaster richColors position="top-right" />
     </div>
   )
 }

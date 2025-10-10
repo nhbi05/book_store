@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import type { User as UserType } from '../types/auth';
 
 interface RegisterProps {
@@ -13,15 +14,15 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
     email: '',
     password: '',
     confirmPassword: ''
-  });
-  const [showPassword, setShowPassword] = useState(false);
+  });  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
+  const [success, setSuccess] = useState('');
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setIsLoading(true);
 
     try {
@@ -40,25 +41,51 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
 
       if (formData.password !== formData.confirmPassword) {
         throw new Error('Passwords do not match');
-      }
-
-      if (formData.name.length < 2) {
+      }      if (formData.name.length < 2) {
         throw new Error('Name must be at least 2 characters long');
       }
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Register with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+          }
+        }
+      });
 
-      // Mock successful registration
-      const user: UserType = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email
-      };
-
-      onRegister(user);
-    } catch (err: any) {
-      setError(err.message || 'Failed to register. Please try again.');
+      if (error) {
+        throw error;
+      }      if (data.user) {
+        // Check if email confirmation is required
+        if (data.user.email_confirmed_at) {
+          const user: UserType = {
+            id: data.user.id,
+            name: formData.name,
+            email: data.user.email || formData.email
+          };
+          onRegister(user);
+        } else {
+          setSuccess('Registration successful! Please check your email and click the confirmation link to complete your account setup.');
+        }
+      }} catch (err: any) {
+      let errorMessage = 'Failed to register. Please try again.';
+      
+      if (err.message?.includes('User already registered')) {
+        errorMessage = 'An account with this email already exists. Please try logging in instead.';
+      } else if (err.message?.includes('Password should be at least')) {
+        errorMessage = 'Password should be at least 6 characters long.';
+      } else if (err.message?.includes('Invalid email')) {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (err.message?.includes('signup is disabled')) {
+        errorMessage = 'Account registration is currently disabled. Please contact support.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -69,9 +96,9 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
-    }));
-    // Clear error when user starts typing
+    }));    // Clear error and success when user starts typing
     if (error) setError('');
+    if (success) setSuccess('');
   };
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -244,13 +271,20 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
                   </button>
                 </div>
               </div>
-            </div>
-
-            {/* Error Message */}
+            </div>            {/* Error Message */}
             {error && (
               <div className="rounded-xl bg-red-50/80 backdrop-blur-sm border border-red-200 p-4">
                 <div className="text-sm text-red-700 font-medium">
                   {error}
+                </div>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="rounded-xl bg-emerald-50/80 backdrop-blur-sm border border-emerald-200 p-4">
+                <div className="text-sm text-emerald-700 font-medium">
+                  {success}
                 </div>
               </div>
             )}

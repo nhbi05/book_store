@@ -1,32 +1,52 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import type { User } from '../types/auth';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 
 interface AuthWrapperProps {
-  children: (user: User) => React.ReactNode;
+  children: (user: User, logout: () => Promise<void>) => React.ReactNode;
 }
 
 const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
-
   useEffect(() => {
-    // Check for existing session in localStorage
-    const storedUser = localStorage.getItem('bookstore_user');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
+    // Check for existing Supabase session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const userData: User = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || ''
+        };
         setUser(userData);
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
+        localStorage.setItem('bookstore_user', JSON.stringify(userData));
+      }
+      setIsLoading(false);
+    };
+
+    getSession();    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const userData: User = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || ''
+        };
+        setUser(userData);
+        localStorage.setItem('bookstore_user', JSON.stringify(userData));
+      } else {
+        setUser(null);
         localStorage.removeItem('bookstore_user');
       }
-    }
-    setIsLoading(false);
-  }, []);
+    });
 
+    return () => subscription.unsubscribe();
+  }, []);
   const handleLogin = (userData: User) => {
     setUser(userData);
     localStorage.setItem('bookstore_user', JSON.stringify(userData));
@@ -35,6 +55,12 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const handleRegister = (userData: User) => {
     setUser(userData);
     localStorage.setItem('bookstore_user', JSON.stringify(userData));
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    localStorage.removeItem('bookstore_user');
   };
 
   if (isLoading) {
@@ -62,8 +88,7 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
       </div>
     );
   }
-
-  return <>{children(user)}</>;
+  return <>{children(user, handleLogout)}</>;
 };
 
 export default AuthWrapper;

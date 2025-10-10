@@ -12,7 +12,7 @@ import Orders from './pages/Orders';
 import Purchases from './pages/Purchases';
 import Reports from './pages/Reports';
 
-const MainApp: React.FC<{ user: UserType }> = ({ user }) => {
+const MainApp: React.FC<{ user: UserType; logout: () => Promise<void> }> = ({ user, logout }) => {
   const [currentPage, setCurrentPage] = useState('books');
 
   const navigation = [
@@ -38,10 +38,8 @@ const MainApp: React.FC<{ user: UserType }> = ({ user }) => {
       case 'reports': return <Reports />;
       default: return <Books />;
     }  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('bookstore_user');
-    window.location.reload();
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
@@ -119,7 +117,7 @@ const MainApp: React.FC<{ user: UserType }> = ({ user }) => {
 function App() {
   return (
     <AuthWrapper>
-      {(user) => <MainApp user={user} />}
+      {(user, logout) => <MainApp user={user} logout={logout} />}
     </AuthWrapper>
   );
 }

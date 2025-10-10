@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import type { User } from '../types/auth';
 
 interface LoginProps {
@@ -19,10 +20,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
-
-    try {
-      // Simulate login process
+    setIsLoading(true);    try {
+      // Basic validation
       if (!formData.email || !formData.password) {
         throw new Error('Please fill in all fields');
       }
@@ -35,19 +34,38 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
         throw new Error('Password must be at least 6 characters long');
       }
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Authenticate with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      // Mock successful login
-      const user: User = {
-        id: '1',
-        name: formData.email.split('@')[0],
-        email: formData.email
-      };
+      if (error) {
+        throw error;
+      }
 
-      onLogin(user);
-    } catch (err: any) {
-      setError(err.message || 'Failed to login. Please try again.');
+      if (data.user) {
+        const user: User = {
+          id: data.user.id,
+          name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User',
+          email: data.user.email || formData.email
+        };
+
+        onLogin(user);
+      }    } catch (err: any) {
+      let errorMessage = 'Failed to login. Please try again.';
+      
+      if (err.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials.';
+      } else if (err.message?.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and click the confirmation link before signing in.';
+      } else if (err.message?.includes('Too many requests')) {
+        errorMessage = 'Too many login attempts. Please wait a moment before trying again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -173,10 +191,25 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
                   ) : (
                     <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                   )}
-                </button>
-              </div>
+                </button>              </div>
             </div>
-          </div>            {/* Error Message */}
+
+            {/* Forgot Password */}
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => {
+                  // You can implement password reset functionality here
+                  alert('Password reset functionality would be implemented here with Supabase auth.resetPasswordForEmail()');
+                }}
+                className="text-sm text-amber-600 hover:text-amber-700 transition-colors underline decoration-2 underline-offset-2"
+              >
+                Forgot your password?
+              </button>
+            </div>
+          </div>
+
+            {/* Error Message */}
             {error && (
               <div className="rounded-xl bg-red-50/80 backdrop-blur-sm border border-red-200 p-4">
                 <div className="text-sm text-red-700 font-medium">

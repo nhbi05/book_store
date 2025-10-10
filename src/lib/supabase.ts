@@ -13,5 +13,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export const TABLES = {
   AUTHORS: 'authors',
   BOOKS: 'book',
-  CATEGORIES: 'categories'
+  CATEGORIES: 'categories',
+  SUPPLIERS: 'suppliers'
 } as const

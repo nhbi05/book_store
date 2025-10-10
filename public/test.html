@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+</head>
+<body>
+    <div id="test">
+        <h1>Test Page</h1>
+        <p>If you can see this, the server is working.</p>
+        <script>
+            console.log('Test page loaded successfully');
+            // Try to fetch the main application
+            fetch('/')
+                .then(response => response.text())
+                .then(html => {
+                    console.log('Main app HTML length:', html.length);
+                    if (html.includes('root')) {
+                        console.log('Found root element in HTML');
+                    } else {
+                        console.log('Root element not found in HTML');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching main app:', error);
+                });
+        </script>
+    </div>
+</body>
+</html>

@@ -204,8 +204,7 @@ export default function Books() {
         hint: error?.hint,
         code: error?.code
       })
-      
-      // Handle specific error cases
+        // Handle specific error cases
       let errorMessage = 'Failed to save book.'
       
       if (error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
@@ -220,6 +219,8 @@ export default function Books() {
       } else if (error?.message) {
         errorMessage = `Error: ${error.message}`
       }
+      
+      console.error('Book save error:', errorMessage);
     }
   }
 

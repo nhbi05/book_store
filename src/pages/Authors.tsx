@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Edit, Trash2, User, BookOpen } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, User } from 'lucide-react'
 import { authorsAPI, booksAPI } from '../lib/api'
 import type { Author, CreateAuthor, UpdateAuthor } from '../types/database'
 

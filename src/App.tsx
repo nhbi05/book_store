@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { BookOpen, Menu, Settings, Bell } from 'lucide-react';
+import { BookOpen, Menu, Settings, Bell, LogOut, User } from 'lucide-react';
+import AuthWrapper from './components/AuthWrapper';
+import type { User as UserType } from './types/auth';
 import Dashboard from './pages/Dashboard';
 import Books from './pages/Books';
 import Authors from './pages/Authors';
@@ -10,7 +12,7 @@ import Orders from './pages/Orders';
 import Purchases from './pages/Purchases';
 import Reports from './pages/Reports';
 
-function App() {
+const MainApp: React.FC<{ user: UserType }> = ({ user }) => {
   const [currentPage, setCurrentPage] = useState('books');
 
   const navigation = [
@@ -35,7 +37,11 @@ function App() {
       case 'purchases': return <Purchases />;
       case 'reports': return <Reports />;
       default: return <Books />;
-    }
+    }  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('bookstore_user');
+    window.location.reload();
   };
 
   return (
@@ -52,8 +58,7 @@ function App() {
               <span className="font-semibold text-gray-800">BookStore</span>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
             <button className="px-3 py-1.5 text-sm hover:bg-[#d4b5b5] rounded text-gray-700">
               Tools
             </button>
@@ -63,6 +68,21 @@ function App() {
             <button className="p-2 hover:bg-[#d4b5b5] rounded">
               <Settings size={18} className="text-gray-700" />
             </button>
+            
+            {/* User Menu */}
+            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-[#d4b5b5]">
+              <div className="flex items-center gap-2 text-gray-700">
+                <User size={18} />
+                <span className="text-sm font-medium">{user.name}</span>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="p-2 hover:bg-[#d4b5b5] rounded text-gray-700"
+                title="Logout"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
           </div>
         </div>
         
@@ -92,8 +112,15 @@ function App() {
 
       <main className="flex-1">
         {renderPage()}
-      </main>
-    </div>
+      </main>    </div>
+  );
+};
+
+function App() {
+  return (
+    <AuthWrapper>
+      {(user) => <MainApp user={user} />}
+    </AuthWrapper>
   );
 }
 

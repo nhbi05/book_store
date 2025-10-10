@@ -64,3 +64,14 @@ export interface UpdateBook {
   stock_quantity?: number
   price?: number
 }
+
+export interface Supplier {
+  supplier_id: number
+  name: string
+  contact: string
+  email: string
+  address: string
+}
+
+export type CreateSupplier = Omit<Supplier, 'supplier_id'>
+export type UpdateSupplier = Partial<CreateSupplier>

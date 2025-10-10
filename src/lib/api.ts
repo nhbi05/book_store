@@ -9,7 +9,10 @@ import type {
   CreateCategory,
   UpdateCategory,
   CreateBook,
-  UpdateBook
+  UpdateBook,
+  Supplier,
+  CreateSupplier,
+  UpdateSupplier
 } from '../types/database'
 
 // Authors API
@@ -272,5 +275,73 @@ export const booksAPI = {
     
     if (error) throw error
     return data
+  }
+}
+
+// Suppliers API
+export const suppliersAPI = {
+  // Get all suppliers
+  async getAll(): Promise<Supplier[]> {
+    const { data, error } = await supabase
+      .from(TABLES.SUPPLIERS)
+      .select('*')
+      .order('supplier_id', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  },
+
+  // Get supplier by ID
+  async getById(id: number): Promise<Supplier> {
+    const { data, error } = await supabase
+      .from(TABLES.SUPPLIERS)
+      .select('*')
+      .eq('supplier_id', id)
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  // Create new supplier
+  async create(supplier: CreateSupplier): Promise<Supplier> {
+    // Omit supplier_id if present
+    const { supplier_id, ...supplierDataWithoutId } = supplier as any
+    const { data, error } = await supabase
+      .from(TABLES.SUPPLIERS)
+      .insert([supplierDataWithoutId])
+      .select()
+      .single()
+    
+    if (error) {
+      if (error.code === '23505' && error.message?.includes('suppliers_pkey')) {
+        throw new Error('Database sequence error for supplier_id. Please reset the suppliers_supplier_id_seq.')
+      }
+      throw error
+    }
+    return data
+  },
+
+  // Update supplier
+  async update(id: number, updates: UpdateSupplier): Promise<Supplier> {
+    const { data, error } = await supabase
+      .from(TABLES.SUPPLIERS)
+      .update(updates)
+      .eq('supplier_id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  // Delete supplier
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase
+      .from(TABLES.SUPPLIERS)
+      .delete()
+      .eq('supplier_id', id)
+    
+    if (error) throw error
   }
 }

@@ -99,11 +99,10 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
     }));    // Clear error and success when user starts typing
     if (error) setError('');
     if (success) setSuccess('');
-  };
-  return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+  };  return (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: '#e4c5c5' }}>
       {/* Books Background Pattern */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+      <div className="absolute inset-0">
         <div className="absolute inset-0 opacity-10">
           {/* Decorative book shapes */}
           <div className="absolute top-16 right-16 w-16 h-20 bg-emerald-600 transform -rotate-12 rounded-sm shadow-lg"></div>
@@ -305,11 +304,10 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
                   <BookOpen className="w-5 h-5 mr-2" />
                   Join BookStore
                 </>
-              )}
-            </button>
+              )}            </button>
 
             {/* Terms */}
-            <div className="mt-6 p-4 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 backdrop-blur-sm rounded-xl border border-emerald-200/50">
+            <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 backdrop-blur-sm rounded-xl border border-emerald-200/50">
               <p className="text-xs text-center text-emerald-800">
                 By creating an account, you agree to our{' '}
                 <a href="#" className="font-semibold text-emerald-700 hover:text-emerald-800 underline decoration-2 underline-offset-2">
@@ -319,7 +317,7 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onSwitchToLogin }) => {
                 <a href="#" className="font-semibold text-emerald-700 hover:text-emerald-800 underline decoration-2 underline-offset-2">
                   Privacy Policy
                 </a>
-              </p>            </div>
+              </p></div>
           </form>
         </div>
       </div>

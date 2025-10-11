@@ -20,7 +20,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);    try {
+    setIsLoading(true);
+
+    try {
       // Basic validation
       if (!formData.email || !formData.password) {
         throw new Error('Please fill in all fields');
@@ -52,7 +54,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
         };
 
         onLogin(user);
-      }    } catch (err: any) {
+      }
+    } catch (err: any) {
       let errorMessage = 'Failed to login. Please try again.';
       
       if (err.message?.includes('Invalid login credentials')) {
@@ -80,10 +83,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
     // Clear error when user starts typing
     if (error) setError('');
   };
+
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: '#e4c5c5' }}>
       {/* Books Background Pattern */}
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+      <div className="absolute inset-0">
         <div className="absolute inset-0 opacity-10">
           {/* Decorative book shapes */}
           <div className="absolute top-10 left-10 w-16 h-20 bg-blue-600 transform rotate-12 rounded-sm shadow-lg"></div>
@@ -135,79 +139,82 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
                 Create one here
               </button>
             </p>
-          </div>          {/* Form */}
-          <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
-                  placeholder="Enter your email"
-                />
-              </div>
-            </div>
+          </div>
 
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+          {/* Form */}
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              {/* Email */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
+                    placeholder="Enter your email"
+                  />
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
-                  placeholder="Enter your password"
-                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Forgot Password */}
+              <div className="text-right">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => {
+                    // You can implement password reset functionality here
+                    alert('Password reset functionality would be implemented here with Supabase auth.resetPasswordForEmail()');
+                  }}
+                  className="text-sm text-amber-600 hover:text-amber-700 transition-colors underline decoration-2 underline-offset-2"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>              </div>
+                  Forgot your password?
+                </button>
+              </div>
             </div>
-
-            {/* Forgot Password */}
-            <div className="text-right">
-              <button
-                type="button"
-                onClick={() => {
-                  // You can implement password reset functionality here
-                  alert('Password reset functionality would be implemented here with Supabase auth.resetPasswordForEmail()');
-                }}
-                className="text-sm text-amber-600 hover:text-amber-700 transition-colors underline decoration-2 underline-offset-2"
-              >
-                Forgot your password?
-              </button>
-            </div>
-          </div>
 
             {/* Error Message */}
             {error && (
@@ -223,7 +230,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
               type="submit"
               disabled={isLoading}
               className="w-full flex justify-center py-3 px-6 border border-transparent text-base font-semibold rounded-xl text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >              {isLoading ? (
+            >
+              {isLoading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                   Signing in...
@@ -233,28 +241,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onSwitchToRegister }) => {
                   <BookOpen className="w-5 h-5 mr-2" />
                   Sign in to BookStore
                 </>
-              )}
-            </button>
-
-            {/* Demo Credentials */}
-            <div className="mt-8 p-6 bg-gradient-to-r from-amber-50/80 to-orange-50/80 backdrop-blur-sm rounded-xl border border-amber-200/50">
-              <div className="text-center">
-                <h3 className="text-sm font-semibold text-amber-800 mb-3 flex items-center justify-center">
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Quick Demo Access
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                    <span className="text-gray-600 font-medium">Email:</span>
-                    <span className="text-amber-700 font-mono">demo@bookstore.com</span>
-                  </div>
-                  <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2">
-                    <span className="text-gray-600 font-medium">Password:</span>
-                    <span className="text-amber-700 font-mono">demo123</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              )}            </button>
           </form>
         </div>
       </div>

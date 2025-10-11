@@ -12,24 +12,24 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
+  
   useEffect(() => {
-    // Check for existing Supabase session
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // Always clear sessions on app load - force logout
+    const clearAllSessions = async () => {
+      // Clear localStorage
+      localStorage.removeItem('bookstore_user');
       
-      if (session?.user) {
-        const userData: User = {
-          id: session.user.id,
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || ''
-        };
-        setUser(userData);
-        localStorage.setItem('bookstore_user', JSON.stringify(userData));
-      }
+      // Sign out from Supabase to clear any existing sessions
+      await supabase.auth.signOut();
+      
+      // Always start with no user logged in
+      setUser(null);
       setIsLoading(false);
     };
 
-    getSession();    // Listen for auth changes
+    clearAllSessions();
+
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const userData: User = {
@@ -38,23 +38,36 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
           email: session.user.email || ''
         };
         setUser(userData);
-        localStorage.setItem('bookstore_user', JSON.stringify(userData));
+        // No localStorage persistence - session will not survive page refresh
       } else {
         setUser(null);
+        // Clear any leftover localStorage data
         localStorage.removeItem('bookstore_user');
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Clear session when user closes browser/tab
+    const handleBeforeUnload = () => {
+      localStorage.removeItem('bookstore_user');
+      supabase.auth.signOut();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
+
   const handleLogin = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('bookstore_user', JSON.stringify(userData));
+    // No localStorage persistence - user will be logged out on refresh
   };
 
   const handleRegister = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('bookstore_user', JSON.stringify(userData));
+    // No localStorage persistence - user will be logged out on refresh
   };
 
   const handleLogout = async () => {

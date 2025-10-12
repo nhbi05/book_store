@@ -9,14 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Disable session persistence to force fresh login every visit
-    persistSession: false,
-    // Set session storage to memory only (not localStorage)
-    storage: undefined,
-    // Auto refresh disabled since we want manual login each time
-    autoRefreshToken: false,
-    // Detect session in URL disabled
-    detectSessionInUrl: false
+    // Enable session persistence - sessions survive browser refresh
+    persistSession: true,
+    // Store session in localStorage (survives browser close)
+    storage: window.localStorage,
+    // Automatically refresh tokens to keep user logged in
+    autoRefreshToken: true,
+    // Detect session in URL (for email confirmations)
+    detectSessionInUrl: true
   }
 })
 

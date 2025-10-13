@@ -15,18 +15,32 @@ export default function Purchases() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [books, setBooks] = useState<BookWithRelations[]>([])
   const [saving, setSaving] = useState(false)
+  const [loadingList, setLoadingList] = useState(true)
+  const [purchases, setPurchases] = useState<any[]>([])
 
   const [supplierId, setSupplierId] = useState<number | ''>('')
   const [purchaseDate, setPurchaseDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [items, setItems] = useState<LineItem[]>([{ book_id: '', quantity: 1, unit_cost: 0 }])
 
   useEffect(() => {
-    Promise.all([suppliersAPI.getAll(), booksAPI.getAll()])
-      .then(([s, b]) => {
+    const load = async () => {
+      try {
+        setLoadingList(true)
+        const [s, b, p] = await Promise.all([
+          suppliersAPI.getAll(),
+          booksAPI.getAll(),
+          purchasesAPI.list()
+        ])
         setSuppliers(s)
         setBooks(b)
-      })
-      .catch((e) => console.error(e))
+        setPurchases(p)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoadingList(false)
+      }
+    }
+    load()
   }, [])
 
   const totalCost = useMemo(() => {
@@ -72,6 +86,11 @@ export default function Purchases() {
       setSaving(true)
       await purchasesAPI.createWithDetails(purchase, validDetails)
       toast.success('Purchase saved and stock updated')
+      // refresh list
+      try {
+        const p = await purchasesAPI.list()
+        setPurchases(p)
+      } catch {}
       // Reset form
       setSupplierId('')
       setPurchaseDate(new Date().toISOString().slice(0, 10))
@@ -187,9 +206,49 @@ export default function Purchases() {
 
       <div className="mt-6 flex gap-3">
         <button onClick={addItem} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700">Add Line</button>
-        <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2">
-          <Save size={18} /> Save Purchase
-        </button>
+      </div>
+
+      {/* Previous purchases */}
+      <div className="mt-10 bg-white border rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b">
+          <h2 className="font-semibold text-gray-900">Previous Purchases</h2>
+        </div>
+        {loadingList ? (
+          <div className="p-6 text-gray-600">Loading...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-3 py-2 text-left text-sm text-gray-700">#</th>
+                  <th className="px-3 py-2 text-left text-sm text-gray-700">Date</th>
+                  <th className="px-3 py-2 text-left text-sm text-gray-700">Supplier</th>
+                  <th className="px-3 py-2 text-left text-sm text-gray-700">Items</th>
+                  <th className="px-3 py-2 text-left text-sm text-gray-700">Total</th>
+                  <th className="px-3 py-2 text-left text-sm text-gray-700">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchases.length === 0 ? (
+                  <tr><td className="px-3 py-4 text-gray-600" colSpan={6}>No purchases yet</td></tr>
+                ) : (
+                  purchases.map((p, i) => (
+                    <tr key={p.purchase_id} className={`border-b ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                      <td className="px-3 py-2 text-sm text-gray-600">{i + 1}</td>
+                      <td className="px-3 py-2 text-sm text-gray-900">{new Date(p.purchase_date).toLocaleDateString()}</td>
+                      <td className="px-3 py-2 text-sm text-blue-600">{p.suppliers?.name || '-'}</td>
+                      <td className="px-3 py-2 text-sm text-gray-900">{p.itemsCount}</td>
+                      <td className="px-3 py-2 text-sm text-gray-900">UGX {Number(p.totalCost || 0).toLocaleString()}</td>
+                      <td className="px-3 py-2">
+                        <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'received' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{p.status}</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       <Toaster richColors position="top-right" />
     </div>

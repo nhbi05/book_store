@@ -350,6 +350,31 @@ export const suppliersAPI = {
 
 // Purchases API
 export const purchasesAPI = {
+  // List purchases with supplier info and aggregated totals
+  async list() {
+    const { data, error } = await supabase
+      .from(TABLES.PURCHASES)
+      .select(`
+        purchase_id,
+        supplier_id,
+        purchase_date,
+        status,
+        suppliers:suppliers ( supplier_id, name ),
+        purchasedetails:purchasedetails ( quantity, unit_cost )
+      `)
+      .order('purchase_id', { ascending: false })
+
+    if (error) throw error
+
+    // compute totals and items count on client
+    return (data || []).map((row: any) => {
+      const items = row.purchasedetails || []
+      const itemsCount = items.reduce((n: number, d: any) => n + Number(d.quantity || 0), 0)
+      const totalCost = items.reduce((sum: number, d: any) => sum + Number(d.quantity || 0) * Number(d.unit_cost || 0), 0)
+      return { ...row, itemsCount, totalCost }
+    })
+  },
+
   // Create a purchase with details and update stock quantities
   async createWithDetails(purchase: CreatePurchase, details: CreatePurchaseDetail[]) {
     // 1) Insert purchase

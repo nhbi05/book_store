@@ -25,5 +25,7 @@ export const TABLES = {
   AUTHORS: 'authors',
   BOOKS: 'book',
   CATEGORIES: 'categories',
-  SUPPLIERS: 'suppliers'
+  SUPPLIERS: 'suppliers',
+  PURCHASES: 'purchases',
+  PURCHASE_DETAILS: 'purchasedetails'
 } as const

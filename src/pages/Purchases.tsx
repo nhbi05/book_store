@@ -1,117 +1,197 @@
-import { useState } from 'react';
-import { Menu, LayoutGrid, Users, EyeOff, SlidersHorizontal, Group, ArrowUpDown, Palette, Search, Share2, ChevronDown, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react'
+import { Plus, Trash2, Calendar, Save } from 'lucide-react'
+import { Toaster } from '../components/ui/sonner'
+import { toast } from 'sonner'
+import { suppliersAPI, booksAPI, purchasesAPI } from '../lib/api'
+import type { Supplier, BookWithRelations, CreatePurchase, CreatePurchaseDetail } from '../types/database'
 
-interface Purchase {
-  id: number;
-  purchaseDate: string;
-  supplierName: string;
-  status: string;
-  totalCost: number;
-  itemsCount: number;
+interface LineItem {
+  book_id: number | ''
+  quantity: number
+  unit_cost: number
 }
 
 export default function Purchases() {
-  const [purchases] = useState<Purchase[]>([
-    { id: 1, purchaseDate: '2024-09-15', supplierName: 'BookWorld Distributors', status: 'Received', totalCost: 2500.00, itemsCount: 50 },
-    { id: 2, purchaseDate: '2024-09-28', supplierName: 'Academic Press Ltd', status: 'Pending', totalCost: 1800.00, itemsCount: 35 },
-    { id: 3, purchaseDate: '2024-10-05', supplierName: 'Global Books Inc', status: 'Received', totalCost: 3200.00, itemsCount: 75 }
-  ]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [books, setBooks] = useState<BookWithRelations[]>([])
+  const [saving, setSaving] = useState(false)
+
+  const [supplierId, setSupplierId] = useState<number | ''>('')
+  const [purchaseDate, setPurchaseDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [items, setItems] = useState<LineItem[]>([{ book_id: '', quantity: 1, unit_cost: 0 }])
+
+  useEffect(() => {
+    Promise.all([suppliersAPI.getAll(), booksAPI.getAll()])
+      .then(([s, b]) => {
+        setSuppliers(s)
+        setBooks(b)
+      })
+      .catch((e) => console.error(e))
+  }, [])
+
+  const totalCost = useMemo(() => {
+    return items.reduce((sum, it) => sum + (it.quantity > 0 && it.unit_cost > 0 ? it.quantity * it.unit_cost : 0), 0)
+  }, [items])
+
+  const updateItem = (index: number, update: Partial<LineItem>) => {
+    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...update } : it)))
+  }
+
+  const addItem = () => setItems((prev) => [...prev, { book_id: '', quantity: 1, unit_cost: 0 }])
+  const removeItem = (index: number) => setItems((prev) => prev.filter((_, i) => i !== index))
+
+  
+
+  const handleSave = async () => {
+    if (supplierId === '') {
+      toast.error('Please select a supplier')
+      return
+    }
+    const validDetails: CreatePurchaseDetail[] = []
+    for (const it of items) {
+      if (it.book_id === '' || it.quantity <= 0 || it.unit_cost <= 0) continue
+      validDetails.push({
+        purchase_id: 0, // placeholder, filled in API layer
+        book_id: Number(it.book_id),
+        quantity: Number(it.quantity),
+        unit_cost: Number(it.unit_cost)
+      } as any)
+    }
+    if (validDetails.length === 0) {
+      toast.error('Please add at least one valid book line')
+      return
+    }
+
+    const purchase: CreatePurchase = {
+      supplier_id: Number(supplierId),
+      purchase_date: new Date(purchaseDate).toISOString(),
+      status: 'received'
+    }
+
+    try {
+      setSaving(true)
+      await purchasesAPI.createWithDetails(purchase, validDetails)
+      toast.success('Purchase saved and stock updated')
+      // Reset form
+      setSupplierId('')
+      setPurchaseDate(new Date().toISOString().slice(0, 10))
+      setItems([{ book_id: '', quantity: 1, unit_cost: 0 }])
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error?.message || 'Failed to save purchase')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="border-b border-gray-200">
-        <div className="flex items-center justify-between px-4 py-2">
-          <div className="flex items-center gap-2">
-            <button className="p-1.5 hover:bg-gray-100 rounded text-sm flex items-center gap-1">
-              <Menu size={16} />
-              <span className="text-sm">Views</span>
-            </button>
-            <div className="w-px h-5 bg-gray-300"></div>
-            <button className="p-1.5 hover:bg-gray-100 rounded flex items-center gap-1.5 text-sm font-medium">
-              <LayoutGrid size={16} />
-              <span>All Purchases</span>
-              <ChevronDown size={14} />
-            </button>
-            <button className="p-1.5 hover:bg-gray-100 rounded" title="All items">
-              <Users size={16} />
-            </button>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">New Purchase</h1>
+          <p className="text-gray-600">Record supplier purchase and update stock</p>
+        </div>
+        <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2">
+          <Save size={18} />
+          Save Purchase
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg border p-4 mb-6">
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+            <div>
+              <select value={supplierId} onChange={(e) => setSupplierId(e.target.value === '' ? '' : Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="">Select supplier</option>
+              {suppliers.map((s) => (
+                <option key={s.supplier_id} value={s.supplier_id}>{s.name}</option>
+              ))}
+              </select>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="p-1.5 hover:bg-gray-100 rounded" title="Hide columns"><EyeOff size={16} /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded" title="Filter"><SlidersHorizontal size={16} /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded" title="Group"><Group size={16} /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded" title="Sort"><ArrowUpDown size={16} /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded" title="Color"><Palette size={16} /></button>
-            <div className="w-px h-5 bg-gray-300"></div>
-            <button className="p-1.5 hover:bg-gray-100 rounded" title="Find"><Search size={16} /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded" title="Share"><Share2 size={16} /></button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Date</label>
+            <div className="relative">
+              <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Total Cost</label>
+            <input value={`UGX ${totalCost.toLocaleString()}`} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" />
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse">
-          <thead className="sticky top-0 bg-[#faf9f8] border-b border-gray-200">
-            <tr>
-              <th className="w-12 px-3 py-2 text-left"><input type="checkbox" className="rounded" /></th>
-              <th className="w-12 px-3 py-2 text-left text-xs font-normal text-gray-600"><Menu size={14} /></th>
-              <th className="px-3 py-2 text-left">
-                <button className="flex items-center gap-1 text-xs font-semibold text-gray-700 hover:text-gray-900">
-                  <span>Purchase Date</span><ChevronDown size={12} />
-                </button>
-              </th>
-              <th className="px-3 py-2 text-left">
-                <button className="flex items-center gap-1 text-xs font-semibold text-gray-700 hover:text-gray-900">
-                  <span>Supplier Name</span><ChevronDown size={12} />
-                </button>
-              </th>
-              <th className="px-3 py-2 text-left">
-                <button className="flex items-center gap-1 text-xs font-semibold text-gray-700 hover:text-gray-900">
-                  <span>Status</span><ChevronDown size={12} />
-                </button>
-              </th>
-              <th className="px-3 py-2 text-left">
-                <button className="flex items-center gap-1 text-xs font-semibold text-gray-700 hover:text-gray-900">
-                  <span className="flex items-center gap-1"><span>#</span><span>Items Count</span></span><ChevronDown size={12} />
-                </button>
-              </th>
-              <th className="px-3 py-2 text-left">
-                <button className="flex items-center gap-1 text-xs font-semibold text-gray-700 hover:text-gray-900">
-                  <span>Total Cost</span><ChevronDown size={12} />
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {purchases.map((purchase, index) => (
-              <tr key={purchase.id} className="border-b border-gray-100 hover:bg-gray-50 group">
-                <td className="px-3 py-2"><input type="checkbox" className="rounded" /></td>
-                <td className="px-3 py-2 text-sm text-gray-500">{index + 1}</td>
-                <td className="px-3 py-2 text-sm text-gray-700">{purchase.purchaseDate}</td>
-                <td className="px-3 py-2">
-                  <button className="text-sm text-blue-600 hover:underline text-left">{purchase.supplierName}</button>
-                </td>
-                <td className="px-3 py-2">
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    purchase.status === 'Received' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {purchase.status}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-700">{purchase.itemsCount}</td>
-                <td className="px-3 py-2 text-sm text-gray-700">${purchase.totalCost.toFixed(2)}</td>
+      
+
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-3 py-2 text-left text-sm text-gray-700">Book</th>
+                <th className="px-3 py-2 text-left text-sm text-gray-700">Qty</th>
+                <th className="px-3 py-2 text-left text-sm text-gray-700">Unit Cost</th>
+                <th className="px-3 py-2 text-left text-sm text-gray-700">Subtotal</th>
+                <th className="px-3 py-2 text-right text-sm text-gray-700">Actions</th>
               </tr>
-            ))}
-            <tr className="hover:bg-gray-50">
-              <td colSpan={7} className="px-3 py-2">
-                <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
-                  <Plus size={16} /><span>New</span>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white">
+              {items.map((it, idx) => {
+                const book = books.find((b) => b.book_id === it.book_id)
+                const subtotal = it.quantity > 0 && it.unit_cost > 0 ? it.quantity * it.unit_cost : 0
+                return (
+                  <tr key={idx} className={`border-b ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                    <td className="px-3 py-2">
+                      <select value={it.book_id} onChange={(e) => updateItem(idx, { book_id: e.target.value === '' ? '' : Number(e.target.value) })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Select book</option>
+                        {books.map((b) => (
+                          <option key={b.book_id} value={b.book_id}>{b.bk_title}</option>
+                        ))}
+                      </select>
+                      {book?.isbn && <div className="text-xs text-gray-500 mt-1">ISBN: {book.isbn}</div>}
+                    </td>
+                    <td className="px-3 py-2">
+                      <input type="number" min={1} value={it.quantity} onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })} className="w-24 px-3 py-2 border border-gray-300 rounded-lg" />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input type="number" min={0} value={it.unit_cost} onChange={(e) => updateItem(idx, { unit_cost: Number(e.target.value) })} className="w-32 px-3 py-2 border border-gray-300 rounded-lg" />
+                    </td>
+                    <td className="px-3 py-2 text-gray-900">UGX {(subtotal).toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right">
+                      <button onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-600 p-1" title="Remove">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-3 py-2">
+          <button onClick={addItem} className="text-gray-700 hover:text-gray-900 inline-flex items-center gap-2 text-sm">
+            <Plus size={16} /> Add Book
+          </button>
+        </div>
       </div>
+
+      <div className="flex justify-end mt-4">
+        <div className="text-right">
+          <div className="text-sm text-gray-600">Total Purchase Cost</div>
+          <div className="text-xl font-semibold text-gray-900">UGX {totalCost.toLocaleString()}</div>
+        </div>
+      </div>
+
+      <div className="mt-6 flex gap-3">
+        <button onClick={addItem} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700">Add Line</button>
+        <button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2">
+          <Save size={18} /> Save Purchase
+        </button>
+      </div>
+      <Toaster richColors position="top-right" />
     </div>
-  );
+  )
 }

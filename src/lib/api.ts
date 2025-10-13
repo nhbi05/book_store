@@ -12,7 +12,9 @@ import type {
   UpdateBook,
   Supplier,
   CreateSupplier,
-  UpdateSupplier
+  UpdateSupplier,
+  CreatePurchase,
+  CreatePurchaseDetail
 } from '../types/database'
 
 // Authors API
@@ -343,5 +345,50 @@ export const suppliersAPI = {
       .eq('supplier_id', id)
     
     if (error) throw error
+  }
+}
+
+// Purchases API
+export const purchasesAPI = {
+  // Create a purchase with details and update stock quantities
+  async createWithDetails(purchase: CreatePurchase, details: CreatePurchaseDetail[]) {
+    // 1) Insert purchase
+    const { data: purchaseRow, error: purchaseError } = await supabase
+      .from(TABLES.PURCHASES)
+      .insert([purchase])
+      .select()
+      .single()
+
+    if (purchaseError) throw purchaseError
+
+    const purchase_id = purchaseRow.purchase_id as string
+
+    // 2) Insert details (attach purchase_id)
+    const detailsWithFk = details.map(d => ({ ...d, purchase_id }))
+    const { error: detailsError } = await supabase
+      .from(TABLES.PURCHASE_DETAILS)
+      .insert(detailsWithFk)
+
+    if (detailsError) throw detailsError
+
+    // 3) Update stock for each book
+    for (const d of details) {
+      const { data: current, error: fetchError } = await supabase
+        .from(TABLES.BOOKS)
+        .select('stock_quantity')
+        .eq('book_id', d.book_id)
+        .single()
+
+      if (fetchError) throw fetchError
+      const newQty = (current?.stock_quantity ?? 0) + d.quantity
+      const { error: updateError } = await supabase
+        .from(TABLES.BOOKS)
+        .update({ stock_quantity: newQty })
+        .eq('book_id', d.book_id)
+
+      if (updateError) throw updateError
+    }
+
+    return purchaseRow
   }
 }

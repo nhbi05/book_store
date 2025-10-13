@@ -75,3 +75,25 @@ export interface Supplier {
 
 export type CreateSupplier = Omit<Supplier, 'supplier_id'>
 export type UpdateSupplier = Partial<CreateSupplier>
+
+// Purchases
+export interface Purchase {
+  purchase_id: number
+  supplier_id: number | null
+  purchase_date: string
+  status: string
+  created_at?: string
+}
+
+export interface PurchaseDetails {
+  purchase_details_id: number
+  purchase_id: number
+  book_id: number
+  quantity: number
+  unit_cost: number
+  received_quantity?: number
+  created_at?: string
+}
+
+export type CreatePurchase = Omit<Purchase, 'purchase_id' | 'created_at'>
+export type CreatePurchaseDetail = Omit<PurchaseDetails, 'purchase_details_id' | 'created_at'>

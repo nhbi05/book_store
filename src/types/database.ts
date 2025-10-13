@@ -97,3 +97,54 @@ export interface PurchaseDetails {
 
 export type CreatePurchase = Omit<Purchase, 'purchase_id' | 'created_at'>
 export type CreatePurchaseDetail = Omit<PurchaseDetails, 'purchase_details_id' | 'created_at'>
+
+// types/database.ts
+
+export interface Customer {
+  user_id: number
+  name: string
+  contact?: string
+  email?: string
+  membership_type?: string
+  created_at?: string
+}
+
+export interface Order {
+  order_id: number
+  customer_id: number
+  order_date: string
+  total_amount: number
+}
+
+export interface CreateOrder {
+  customer_id: number
+  total_amount: number
+}
+
+export interface UpdateOrder {
+  customer_id?: number
+  total_amount?: number
+}
+
+export interface OrderDetails {
+  order_details_id: number
+  order_id: number
+  book_id: number
+  quantity: number
+  price: number
+  payment_method?: string
+}
+
+export interface CreateOrderDetails {
+  order_id: number
+  book_id: number
+  quantity: number
+  price: number
+  payment_method?: string
+}
+
+export interface UpdateOrderDetails {
+  quantity?: number
+  price?: number
+  payment_method?: string
+}

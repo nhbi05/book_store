@@ -27,5 +27,8 @@ export const TABLES = {
   CATEGORIES: 'categories',
   SUPPLIERS: 'suppliers',
   PURCHASES: 'purchases',
-  PURCHASE_DETAILS: 'purchasedetails'
+  PURCHASE_DETAILS: 'purchasedetails',
+  CUSTOMERS: 'customers', 
+  ORDERS: 'orders', 
+  ORDER_DETAILS: 'orderdetails',
 } as const

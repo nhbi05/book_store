@@ -14,7 +14,13 @@ import type {
   CreateSupplier,
   UpdateSupplier,
   CreatePurchase,
-  CreatePurchaseDetail
+  CreatePurchaseDetail,
+  Order,
+  CreateOrder,
+  UpdateOrder,
+  OrderDetails,
+  CreateOrderDetails,
+  UpdateOrderDetails
 } from '../types/database'
 
 // Authors API
@@ -416,4 +422,92 @@ export const purchasesAPI = {
 
     return purchaseRow
   }
+}
+
+/* =======================
+   ORDERS API
+======================= */
+export const ordersAPI = {
+  async getAll(): Promise<Order[]> {
+    const { data, error } = await supabase
+      .from(TABLES.ORDERS)
+      .select('*')
+      .order('order_id', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  async getById(id: number): Promise<Order | null> {
+    const { data, error } = await supabase
+      .from(TABLES.ORDERS)
+      .select('*')
+      .eq('order_id', id)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async create(order: CreateOrder): Promise<void> {
+    const { error } = await supabase.from(TABLES.ORDERS).insert(order)
+    if (error) throw error
+  },
+
+  async update(id: number, updates: UpdateOrder): Promise<void> {
+    const { error } = await supabase
+      .from(TABLES.ORDERS)
+      .update(updates)
+      .eq('order_id', id)
+    if (error) throw error
+  },
+
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase
+      .from(TABLES.ORDERS)
+      .delete()
+      .eq('order_id', id)
+    if (error) throw error
+  },
+}
+
+/* =======================
+   ORDER DETAILS API
+======================= */
+export const orderDetailsAPI = {
+  async getByOrder(orderId: number): Promise<OrderDetails[]> {
+    const { data, error } = await supabase
+      .from(TABLES.ORDER_DETAILS)
+      .select('*')
+      .eq('order_id', orderId)
+
+    if (error) throw error
+    return data || []
+  },
+
+  async create(details: CreateOrderDetails): Promise<void> {
+    const { error } = await supabase
+      .from(TABLES.ORDER_DETAILS)
+      .insert(details)
+
+    if (error) throw error
+  },
+
+  async update(id: number, updates: UpdateOrderDetails): Promise<void> {
+    const { error } = await supabase
+      .from(TABLES.ORDER_DETAILS)
+      .update(updates)
+      .eq('order_details_id', id)
+
+    if (error) throw error
+  },
+
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase
+      .from(TABLES.ORDER_DETAILS)
+      .delete()
+      .eq('order_details_id', id)
+
+    if (error) throw error
+  },
 }

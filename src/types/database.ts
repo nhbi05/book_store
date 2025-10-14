@@ -98,16 +98,17 @@ export interface PurchaseDetails {
 export type CreatePurchase = Omit<Purchase, 'purchase_id' | 'created_at'>
 export type CreatePurchaseDetail = Omit<PurchaseDetails, 'purchase_details_id' | 'created_at'>
 
-// types/database.ts
-
+// Customers
 export interface Customer {
-  user_id: number
+  customer_id: string
   name: string
   contact?: string
   email?: string
-  membership_type?: string
   created_at?: string
 }
+
+export type CreateCustomer = Omit<Customer, 'customer_id' | 'created_at'>
+export type UpdateCustomer = Partial<CreateCustomer>
 
 export interface Order {
   order_id: number

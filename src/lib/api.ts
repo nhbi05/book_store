@@ -15,6 +15,9 @@ import type {
   UpdateSupplier,
   CreatePurchase,
   CreatePurchaseDetail,
+  Customer,
+  CreateCustomer,
+  UpdateCustomer,
   Order,
   CreateOrder,
   UpdateOrder,
@@ -507,6 +510,64 @@ export const orderDetailsAPI = {
       .from(TABLES.ORDER_DETAILS)
       .delete()
       .eq('order_details_id', id)
+
+    if (error) throw error
+  },
+}
+
+/* =======================
+   CUSTOMERS API
+======================= */
+export const customersAPI = {
+  async getAll(): Promise<Customer[]> {
+    const { data, error } = await supabase
+      .from(TABLES.CUSTOMERS)
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  async getById(id: string): Promise<Customer | null> {
+    const { data, error } = await supabase
+      .from(TABLES.CUSTOMERS)
+      .select('*')
+      .eq('customer_id', id)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async create(customer: CreateCustomer): Promise<Customer> {
+    const { data, error } = await supabase
+      .from(TABLES.CUSTOMERS)
+      .insert([customer])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async update(id: string, updates: UpdateCustomer): Promise<Customer> {
+    const { data, error } = await supabase
+      .from(TABLES.CUSTOMERS)
+      .update(updates)
+      .eq('customer_id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from(TABLES.CUSTOMERS)
+      .delete()
+      .eq('customer_id', id)
 
     if (error) throw error
   },

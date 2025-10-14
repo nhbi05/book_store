@@ -85,11 +85,25 @@ export default function Purchases() {
     try {
       setSaving(true)
       await purchasesAPI.createWithDetails(purchase, validDetails)
+      
+      // Update stock quantities for each book
+      for (const detail of validDetails) {
+        const book = books.find(b => b.book_id === detail.book_id)
+        if (book) {
+          const newStockQuantity = (book.stock_quantity || 0) + detail.quantity
+          await booksAPI.update(detail.book_id, { stock_quantity: newStockQuantity })
+        }
+      }
+      
       toast.success('Purchase saved and stock updated')
       // refresh list
       try {
-        const p = await purchasesAPI.list()
+        const [p, b] = await Promise.all([
+          purchasesAPI.list(),
+          booksAPI.getAll()
+        ])
         setPurchases(p)
+        setBooks(b)
       } catch {}
       // Reset form
       setSupplierId('')

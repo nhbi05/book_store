@@ -20,7 +20,7 @@ export default function Purchases() {
 
   const [supplierId, setSupplierId] = useState<number | ''>('')
   const [purchaseDate, setPurchaseDate] = useState<string>(() => new Date().toISOString().slice(0, 10))
-  const [items, setItems] = useState<LineItem[]>([{ book_id: '', quantity: 1, unit_cost: 0 }])
+  const [items, setItems] = useState<LineItem[]>([{ book_id: '', quantity: 0, unit_cost: 0 }])
 
   useEffect(() => {
     const load = async () => {
@@ -51,7 +51,7 @@ export default function Purchases() {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...update } : it)))
   }
 
-  const addItem = () => setItems((prev) => [...prev, { book_id: '', quantity: 1, unit_cost: 0 }])
+  const addItem = () => setItems((prev) => [...prev, { book_id: '', quantity: 0, unit_cost: 0 }])
   const removeItem = (index: number) => setItems((prev) => prev.filter((_, i) => i !== index))
 
   
@@ -108,7 +108,7 @@ export default function Purchases() {
       // Reset form
       setSupplierId('')
       setPurchaseDate(new Date().toISOString().slice(0, 10))
-      setItems([{ book_id: '', quantity: 1, unit_cost: 0 }])
+       setItems([{ book_id: '', quantity: 0, unit_cost: 0 }])
     } catch (error: any) {
       console.error(error)
       toast.error(error?.message || 'Failed to save purchase')
@@ -178,7 +178,19 @@ export default function Purchases() {
                 return (
                   <tr key={idx} className={`border-b ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                     <td className="px-3 py-2">
-                      <select value={it.book_id} onChange={(e) => updateItem(idx, { book_id: e.target.value === '' ? '' : Number(e.target.value) })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                      <select
+                        value={it.book_id}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : Number(e.target.value)
+                          const selected = books.find(b => b.book_id === val)
+                          updateItem(idx, {
+                            book_id: val as any,
+                            unit_cost: selected ? Number(selected.price) : 0,
+                            quantity: it.quantity > 0 ? it.quantity : 1
+                          })
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
                         <option value="">Select book</option>
                         {books.map((b) => (
                           <option key={b.book_id} value={b.book_id}>{b.bk_title}</option>
@@ -187,10 +199,16 @@ export default function Purchases() {
                       {book?.isbn && <div className="text-xs text-gray-500 mt-1">ISBN: {book.isbn}</div>}
                     </td>
                     <td className="px-3 py-2">
-                      <input type="number" min={1} value={it.quantity} onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })} className="w-24 px-3 py-2 border border-gray-300 rounded-lg" />
+                      <input type="number" min={0} value={it.quantity} onChange={(e) => updateItem(idx, { quantity: Number(e.target.value) })} className="w-24 px-3 py-2 border border-gray-300 rounded-lg" />
                     </td>
                     <td className="px-3 py-2">
-                      <input type="number" min={0} value={it.unit_cost} onChange={(e) => updateItem(idx, { unit_cost: Number(e.target.value) })} className="w-32 px-3 py-2 border border-gray-300 rounded-lg" />
+                      <input
+                        type="number"
+                        min={0}
+                        value={it.unit_cost}
+                        readOnly
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                      />
                     </td>
                     <td className="px-3 py-2 text-gray-900">UGX {(subtotal).toLocaleString()}</td>
                     <td className="px-3 py-2 text-right">

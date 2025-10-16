@@ -11,7 +11,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel
 } from '../components/ui/alert-dialog'
-import { Plus, Search, Edit, Trash2, Users as UsersIcon, X } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, X } from 'lucide-react'
 import { customersAPI } from '../lib/api'
 import type { Customer, CreateCustomer, UpdateCustomer } from '../types/database'
 
@@ -124,9 +124,14 @@ export default function Customers() {
       await customersAPI.delete(customerToDelete)
       toast.success('Customer deleted successfully')
       await loadCustomers()
-    } catch (error) {
-      toast.error('Failed to delete customer')
-      console.error(error)
+    } catch (error: any) {
+      console.error('Delete error:', error)
+      // Check for foreign key constraint errors
+      if (error?.code === '23503' || error?.message?.includes('foreign key')) {
+        toast.error('Cannot delete customer: they have associated orders')
+      } else {
+        toast.error(error?.message || 'Failed to delete customer')
+      }
     } finally {
       setDeleteDialogOpen(false)
       setCustomerToDelete(null)
@@ -135,112 +140,117 @@ export default function Customers() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-gray-500">Loading customers...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="p-6">
       <Toaster />
       
       {/* Header */}
-      <div className="border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <UsersIcon size={28} className="text-gray-700" />
-            <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
-          </div>
-          <button
-            onClick={() => openModal()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            <Plus size={20} />
-            <span>Add Customer</span>
-          </button>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Customers Management</h1>
+          <p className="text-gray-600">Manage your customers and their contact information</p>
         </div>
-        
-        {/* Search */}
+        <button
+          onClick={() => openModal()}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+        >
+          <Plus size={20} />
+          Add Customer
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Search customers by name, email, or contact..."
+            placeholder="Search customers..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Created At
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredCustomers.length === 0 ? (
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  {searchTerm ? 'No customers found matching your search.' : 'No customers yet. Add your first customer!'}
-                </td>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">#</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Name</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Contact</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Email</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Created At</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Actions</th>
               </tr>
-            ) : (
-              filteredCustomers.map((customer) => (
-                <tr key={customer.customer_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-700">{customer.contact || '-'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-700">{customer.email || '-'}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => openModal(customer)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                      title="Edit"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button
-                      onClick={() => confirmDeleteCustomer(customer.customer_id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+            </thead>
+            <tbody className="bg-white">
+              {filteredCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-6 text-gray-500">
+                    {searchTerm ? 'No customers found matching your search.' : 'No customers yet. Add your first customer!'}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredCustomers.map((customer, index) => (
+                  <tr
+                    key={customer.customer_id}
+                    className={`border-b border-gray-100 hover:bg-gray-50/50 ${
+                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-500">{index + 1}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer font-medium">
+                        {customer.name}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-900">{customer.contact || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-900">{customer.email || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-500">
+                        {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => openModal(customer)}
+                          className="text-gray-400 hover:text-blue-600 p-1"
+                          title="Edit"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => confirmDeleteCustomer(customer.customer_id)}
+                          className="text-gray-400 hover:text-red-600 p-1"
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal */}
